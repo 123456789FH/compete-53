@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>موقع تحليل بطاقة نافِس — الابتدائية الثالثة والخمسون بالخميس</title>
+  <meta name="theme-color" content="#ec4899">
+  <!-- Tailwind via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print { .no-print { display:none !important; } body { background:white !important; } }
+    /* fallback utility for inputs & buttons in case Tailwind apply not available */
+    .input { width:100%; border:1px solid #e5e7eb; border-radius:0.5rem; padding:0.5rem 0.75rem; }
+    .btn { border:1px solid #db2777; color:#be185d; border-radius:0.75rem; padding:0.5rem 0.75rem; font-weight:600; }
+    .btn:hover { background:#fdf2f8; }
+  </style>
+  <!-- React & Babel (CDN) -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-b from-pink-50 to-white text-gray-800">
+  <div id="root"></div>
+
+  <script type="text/babel">
+
+// ============ React App ============
+function App() {
+  const initialProfiles = {
+    "الثالث": {
+      meta: {
+        school: "الابتدائية الثالثة والخمسون بالخميس",
+        phase: "ابتدائي — بنات",
+        year: 2025,
+        grade: "الثالث",
+        totalStudents: 55,    // عدّليها من البطاقة
+        examinees: 53,        // عدّليها من البطاقة
+        tripleMastery: 13.0,  // عدّليها من البطاقة
+        delta: 0,             // مقدار التغيّر (٪) — اختياري
+      },
+      subjects: {
+        "القراءة": {
+          avg: 52,
+          levels: {
+            "متدني جدًا": 35,
+            "متدني": 30,
+            "مناسب": 28,
+            "متقدم": 7,
+          },
+          masteryNow: 34,
+          masteryPrev: 41,
+        },
+        "الرياضيات": {
+          avg: 55,
+          levels: {
+            "متدني جدًا": 32,
+            "متدني": 46,
+            "مناسب": 13,
+            "متقدم": 7,
+          },
+          masteryNow: 32,
+          masteryPrev: 40,
+        },
+      },
+    },
+    "السادس": {
+      meta: {
+        school: "الابتدائية الثالثة والخمسون بالخميس",
+        phase: "ابتدائي — بنات",
+        year: 2025,
+        grade: "السادس",
+        totalStudents: 46,   // عدّليها من البطاقة
+        examinees: 40,       // عدّليها من البطاقة
+        tripleMastery: 19.9, // عدّليها من البطاقة إن رغبتِ
+        delta: 24.2,         // مقدار التغيّر الظاهر في البطاقة
+      },
+      subjects: {
+        "القراءة": {
+          avg: 48,
+          levels: {
+            "متدني جدًا": 23,
+            "متدني": 18,
+            "مناسب": 20,
+            "متقدم": 39,
+          },
+          masteryNow: 55,
+          masteryPrev: 45,
+        },
+        "العلوم": {
+          avg: 47,
+          levels: {
+            "متدني جدًا": 16,
+            "متدني": 30,
+            "مناسب": 46,
+            "متقدم": 8,
+          },
+          masteryNow: 53,
+          masteryPrev: 45,
+        },
+        "الرياضيات": {
+          avg: 56,
+          levels: {
+            "متدني جدًا": 13,
+            "متدني": 21,
+            "مناسب": 58,
+            "متقدم": 8,
+          },
+          masteryNow: 57,
+          masteryPrev: 47,
+        },
+      },
+    },
+  };
+
+  const [profileKey, setProfileKey] = React.useState("السادس");
+  const [data, setData] = React.useState(initialProfiles);
+  const [target, setTarget] = React.useState({ "القراءة": 70, "العلوم": 70, "الرياضيات": 70 });
+
+  const prof = data[profileKey];
+  const subjects = Object.keys(prof.subjects);
+  const sum = (obj) => Object.values(obj).reduce((a,b)=>a+Number(b||0),0);
+
+  function setMeta(field, value) {
+    setData(d => ({ ...d, [profileKey]: { ...d[profileKey], meta: { ...d[profileKey].meta, [field]: value } } }));
+  }
+  function setSubjectValue(subj, field, value) {
+    setData(d => ({ ...d, [profileKey]: { ...d[profileKey], subjects: { ...d[profileKey].subjects, [subj]: { ...d[profileKey].subjects[subj], [field]: value } } } }));
+  }
+  function setLevel(subj, level, value) {
+    setData(d => ({ ...d, [profileKey]: { ...d[profileKey], subjects: { ...d[profileKey].subjects, [subj]: { ...d[profileKey].subjects[subj], levels: { ...d[profileKey].subjects[subj].levels, [level]: value } } } } }));
+  }
+
+  function badgeColor(p) {
+    if (p >= 75) return "bg-green-600";
+    if (p >= 60) return "bg-green-500";
+    if (p >= 45) return "bg-yellow-500";
+    return "bg-red-500";
+  }
+
+  function suggestions(subjName, { mastery, low, high, avg, gap }) {
+    const common = [
+      "تقسيم الطالبات إلى مجموعات إتقان متقاربة المستوى",
+      "خطة إسناد أسبوعية للغياب والتأخر",
+      "اختبارات قصيرة أسبوعية مع تحليل فوري",
+      "تغذية راجعة بناءة للأمهات عبر منصة مدرستي",
+      "حصص إثرائية مركزة للمتعثرات (20 دقيقة يوميًا)",
+    ];
+    const map = {
+      "القراءة": [
+        "روتين يومي للقراءة الجهرية والقراءة الموجهة (3–5 دقائق لكل طالبة)",
+        "تعليم استراتيجيات الفهم (التنبؤ، التساؤل، التلخيص) بنماذج مصغرة",
+        "علاج مهارات الصوتيات والمقاطع باستخدام بطاقات تدرّجية",
+        "نادي قراءة ومكتبة صفية مع تحدّي 10 دقائق يوميًا",
+        "متابعة الطلاقة (WCPM) بخط أساس وهدف لكل طالبة",
+      ],
+      "العلوم": [
+        "مختبرات استقصائية قصيرة (5E) تركز على المفاهيم الصعبة",
+        "خرائط مفاهيم وجداول (أعرف/أريد/تعلمت) لربط المعرفة",
+        "تجارب منزلية بسيطة يوثق أثرها بصورة/مقطع",
+        "مفردات علمية تفاعلية وبطاقات مصطلحات",
+        "استخدام نماذج وتمثيلات لتقليل الحمل المعرفي",
+      ],
+      "الرياضيات": [
+        "مهرجان جدول الضرب + تمارين يومية قصيرة للطلاقات العددية",
+        "التدرّج في حل المسألة (افهم–خطط–نفّذ–تحقق) بملصقات صفية",
+        "محطة مناورات (Manipulatives) للحوسبة الذهنية",
+        "ألعاب رقمية قصيرة مع تتبّع إنجازات",
+        "جداول إتقان فردية لأهداف المهارات مع شارات تحفيزية",
+      ],
+    };
+    const picked = [...common, ...(map[subjName] || [])];
+    if (gap >= 20) picked.unshift("تدخل مكثّف لمدة 6–8 أسابيع بواقع 4 حصص علاجية/الأسبوع");
+    else if (gap >= 10) picked.unshift("تدخل موجّه لمدة 4–6 أسابيع بواقع حصتين علاجيتين/الأسبوع");
+    if (avg < 45) picked.unshift("إعادة بناء المفاهيم الأساسية قبل الانتقال للمحتوى الجديد");
+    if (mastery < 40) picked.unshift("خطة طوارئ لرفع الاجتياز إلى 50٪ خلال شهر واحد");
+    return picked.slice(0, 8);
+  }
+
+  function diagnose(subjName) {
+    const s = prof.subjects[subjName];
+    const low = Number(s.levels["متدني جدًا"]||0) + Number(s.levels["متدني"]||0);
+    const high = Number(s.levels["مناسب"]||0) + Number(s.levels["متقدم"]||0);
+    const mastery = Number(s.masteryNow||0);
+
+    const strengths=[], weaknesses=[], positives=[], negatives=[];
+    if (high >= 50) strengths.push("نسبة (مناسب + متقدم) مرتفعة نسبيًا");
+    if (mastery >= 60) strengths.push("اجتياز الحد الأدنى فوق 60٪");
+    if ((s.avg||0) >= 55) strengths.push("متوسط الدرجات فوق 55");
+
+    if (low >= 50) weaknesses.push("كتلة كبيرة في (متدني/متدني جدًا) ≥ 50٪");
+    if (mastery < 40) weaknesses.push("اجتياز الحد الأدنى دون 40٪");
+    if ((s.avg||0) < 45) weaknesses.push("متوسط الدرجات أقل من 45");
+
+    if (s.masteryNow > (s.masteryPrev||0)) positives.push("تحسن في اجتياز الحد الأدنى مقارنة بالسنة الماضية");
+    if (s.masteryNow < (s.masteryPrev||0)) negatives.push("انخفاض في الاجتياز مقارنة بالسنة الماضية");
+
+    const gap = Math.max(0, (target[subjName]||70) - mastery);
+    const ideas = suggestions(subjName, { mastery, low, high, avg: s.avg, gap });
+    return { strengths, weaknesses, positives, negatives, gap, ideas };
+  }
+
+  const downloadJSON = () => {
+    const blob = new Blob([JSON.stringify(data[profileKey], null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `nafes-${profileKey}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  const uploadJSON = (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const obj = JSON.parse(e.target.result);
+        setData(d => ({ ...d, [profileKey]: obj }));
+      } catch (err) { alert("ملف غير صالح"); }
+    };
+    reader.readAsText(file);
+  };
+
+  return (
+    <div>
+      <header className="sticky top-0 bg-white/80 backdrop-blur border-b z-10">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-pink-600 text-white grid place-items-center text-xl font-bold">٥٣</div>
+            <div>
+              <div className="text-sm text-gray-500">{prof.meta.phase}</div>
+              <h1 className="text-lg md:text-2xl font-extrabold">{prof.meta.school} — بطاقة نافِس ({prof.meta.year})</h1>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 no-print">
+            {Object.keys(data).map(k => (
+              <button key={k} onClick={()=>setProfileKey(k)} className={`px-3 py-2 rounded-xl text-sm font-semibold border ${profileKey===k?"bg-pink-600 text-white border-pink-600":"bg-white hover:bg-pink-50"}`}>{k}</button>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto p-4 space-y-6">
+        <section className="bg-white rounded-2xl shadow p-6">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-center">
+            <Info title="المستوى" value={prof.meta.grade} />
+            <Info title="العام" value={prof.meta.year} />
+            <Info title="إجمالي الطالبات" value={prof.meta.totalStudents} />
+            <Info title="المتقدمات" value={prof.meta.examinees} />
+            <Info title="اجتياز الثلاثة معًا" value={`${prof.meta.tripleMastery || 0}%`} hint="(قراءة + علوم + رياضيات)" />
+            <Info title="مقدار التغيّر" value={`${prof.meta.delta || 0}+`} />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 no-print">
+            <EditNumber label="إجمالي الطالبات" value={prof.meta.totalStudents} onChange={(v)=>setMeta('totalStudents', v)} />
+            <EditNumber label="عدد المتقدمات" value={prof.meta.examinees} onChange={(v)=>setMeta('examinees', v)} />
+            <EditNumber label="نسبة اجتياز الثلاثة معًا (%)" value={prof.meta.tripleMastery} onChange={(v)=>setMeta('tripleMastery', v)} />
+            <EditNumber label="مقدار التغيّر (%)" value={prof.meta.delta} onChange={(v)=>setMeta('delta', v)} />
+          </div>
+
+          <div className="mt-4 text-xs text-gray-500">
+            * أدخلي القيم تمامًا كما تظهر في بطاقة نافِس لمدرستك — ثم انتقلي للأسفل لتلقي التحليل والخطة العلاجية تلقائيًا.
+          </div>
+        </section>
+
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {subjects.map(s => (
+            <SubjectCard key={s} name={s} subj={prof.subjects[s]}
+              setSubjectValue={(f, v) => setSubjectValue(s, f, v)}
+              setLevel={(lvl, v)=>setLevel(s, lvl, v)}
+              target={target[s] || 70}
+              onSetTarget={(v)=>setTarget(t=>({ ...t, [s]: v }))}
+            />
+          ))}
+        </section>
+
+        <section className="bg-white rounded-2xl shadow p-6">
+          <h3 className="text-xl font-bold mb-4">التحليل الآلي والملخص التشخيصي</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {subjects.map(s => {
+              const d = diagnose(s);
+              return (
+                <div key={s} className="border rounded-xl p-4">
+                  <h4 className="font-semibold text-lg mb-2">{s}</h4>
+                  <Pill title="نِقاط القوّة" color="green" items={d.strengths} />
+                  <Pill title="نِقاط الضعف" color="red" items={d.weaknesses} />
+                  <Pill title="إيجابيات" color="blue" items={d.positives} />
+                  <Pill title="سلبيات" color="yellow" items={d.negatives} />
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="bg-white rounded-2xl shadow p-6">
+          <h3 className="text-xl font-bold mb-4">الخطة العلاجية المختصرة — {prof.meta.grade}</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {subjects.map(s => {
+              const d = diagnose(s);
+              return (
+                <div key={s} className="border rounded-xl p-4">
+                  <h4 className="font-semibold text-lg mb-2">{s}</h4>
+                  <div className="text-sm opacity-70 mb-1">الفجوة حتى الهدف: <span className="font-bold">{d.gap}%</span></div>
+                  <ul className="list-disc pr-5 space-y-1 text-sm">
+                    {d.ideas.slice(0,5).map((t,i) => <li key={i}>{t}</li>)}
+                  </ul>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+
+        <section className="bg-white rounded-2xl shadow p-6">
+          <h3 className="text-xl font-bold mb-4">لوحة المتابعة — مؤشرات الأداء الرئيسة (KPIs)</h3>
+          <div className="overflow-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="bg-pink-50">
+                  <Th>المؤشر</Th>
+                  <Th>الخط الأساس</Th>
+                  <Th>الهدف</Th>
+                  <Th>الوضع الحالي</Th>
+                  <Th>المسؤول</Th>
+                  <Th>الموعد</Th>
+                  <Th>قياس الأثر</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {subjects.map((s,i) => (
+                  <tr key={i} className="border-b">
+                    <Td>رفع اجتياز الحد الأدنى في {s}</Td>
+                    <Td>{prof.subjects[s].masteryPrev || 0}%</Td>
+                    <Td><input type="number" className="w-20 input" value={target[s] || 70} onChange={(e)=>setTarget(t=>({ ...t, [s]: Number(e.target.value) }))} /></Td>
+                    <Td><span className={`px-2 py-1 rounded-md text-white ${badgeColor(prof.subjects[s].masteryNow || 0)}`}>{prof.subjects[s].masteryNow || 0}%</span></Td>
+                    <Td><input className="input" placeholder="اسم المسؤول" /></Td>
+                    <Td><input className="input" placeholder="مثال: 1 ربيع الأول" /></Td>
+                    <Td>
+                      <select className="input">
+                        <option>اختبارات قصيرة</option>
+                        <option>ملاحظة صفية</option>
+                        <option>تحليل بنود</option>
+                        <option>منتجات تعلم</option>
+                      </select>
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="bg-white rounded-2xl shadow p-6 no-print">
+          <h3 className="text-xl font-bold mb-4">أدوات</h3>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={()=>window.print()} className="btn">طباعة / حفظ PDF</button>
+            <button onClick={downloadJSON} className="btn">تنزيل البيانات (JSON)</button>
+            <label className="btn cursor-pointer">
+              تحميل بيانات
+              <input type="file" accept="application/json" className="hidden" onChange={(e)=>e.target.files?.[0] && uploadJSON(e.target.files[0])} />
+            </label>
+          </div>
+        </section>
+
+        <footer className="text-center text-xs text-gray-500 py-8">
+          تصميم وتطوير: أ/ فاطمة هزازي — هذا الموقع يولِّد تحليلًا آليًا وخططًا علاجية مقترحة قابلة للتعديل وفق واقع الصف.
+        </footer>
+      </main>
+    </div>
+  );
+}
+
+function Info({ title, value, hint }) {
+  return (
+    <div className="rounded-xl border p-3">
+      <div className="text-xs text-gray-500">{title}</div>
+      <div className="text-lg md:text-2xl font-extrabold">{String(value)}</div>
+      {hint && <div className="text-[10px] text-gray-400">{hint}</div>}
+    </div>
+  );
+}
+function EditNumber({ label, value, onChange }) {
+  return (
+    <label className="block">
+      <div className="text-sm mb-1">{label}</div>
+      <input type="number" className="input" value={value} onChange={(e)=>onChange(Number(e.target.value))} />
+    </label>
+  );
+}
+function SubjectCard({ name, subj, setSubjectValue, setLevel, target, onSetTarget }) {
+  const total = Math.max(1, (subj?.levels ? Object.values(subj.levels).reduce((a,b)=>a+Number(b||0),0) : 0));
+  return (
+    <div className="bg-white rounded-2xl shadow p-6">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xl font-bold">{name}</h3>
+        <div className="text-xs text-gray-500">الهدف: <input className="w-16 input inline" type="number" value={target} onChange={(e)=>onSetTarget(Number(e.target.value))} />%</div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <label className="block">
+          <div className="text-sm mb-1">متوسط الدرجات</div>
+          <input type="number" className="input" value={subj.avg} onChange={(e)=>setSubjectValue('avg', Number(e.target.value))} />
+        </label>
+        <label className="block">
+          <div className="text-sm mb-1">اجتياز الحد الأدنى — هذا العام (%)</div>
+          <input type="number" className="input" value={subj.masteryNow} onChange={(e)=>setSubjectValue('masteryNow', Number(e.target.value))} />
+        </label>
+        <label className="block">
+          <div className="text-sm mb-1">اجتياز الحد الأدنى — العام الماضي (%)</div>
+          <input type="number" className="input" value={subj.masteryPrev} onChange={(e)=>setSubjectValue('masteryPrev', Number(e.target.value))} />
+        </label>
+        <div className="rounded-xl border p-3">
+          <div className="text-sm mb-2">توزيع مستويات الأداء</div>
+          {Object.keys(subj.levels).map(lvl => (
+            <div key={lvl} className="mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-28 text-xs text-gray-600">{lvl}</div>
+                <input type="number" className="input w-20" value={subj.levels[lvl]} onChange={(e)=>setLevel(lvl, Number(e.target.value))} />
+                <div className="flex-1 h-2 bg-gray-100 rounded">
+                  <div className="h-2 bg-pink-500 rounded" style={{width: `${(Number(subj.levels[lvl]||0)/total)*100}%`}}></div>
+                </div>
+              </div>
+            </div>
+          ))}
+          <div className="text-[10px] text-gray-400">* يجب أن يكون مجموع النسب ≈ 100٪</div>
+        </div>
+      </div>
+
+      <hr className="my-4" />
+      <SubjectDiagnosis name={name} subj={subj} target={target} />
+    </div>
+  );
+}
+function SubjectDiagnosis({ name, subj, target }) {
+  const low = Number(subj.levels["متدني جدًا"]) + Number(subj.levels["متدني"]);
+  const high = Number(subj.levels["مناسب"]) + Number(subj.levels["متقدم"]);
+  const gap = Math.max(0, (target || 70) - Number(subj.masteryNow || 0));
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="rounded-xl border p-3">
+        <div className="text-sm font-semibold mb-1">نِقاط القوّة</div>
+        <ul className="list-disc pr-5 text-sm space-y-1">
+          {high >= 50 && <li>أغلبية الطالبات ضمن (مناسب/متقدم)</li>}
+          {subj.masteryNow >= 60 && <li>اجتياز الحد الأدنى ≥ 60٪</li>}
+          {subj.avg >= 55 && <li>متوسط درجات جيد نسبيًا</li>}
+          {!(high >= 50 || subj.masteryNow >= 60 || subj.avg >= 55) && <li>—</li>}
+        </ul>
+      </div>
+      <div className="rounded-xl border p-3">
+        <div className="text-sm font-semibold mb-1">نِقاط الضعف</div>
+        <ul className="list-disc pr-5 text-sm space-y-1">
+          {low >= 50 && <li>ارتفاع نسبة (متدني/متدني جدًا)</li>}
+          {subj.masteryNow < 40 && <li>اجتياز الحد الأدنى أقل من 40٪</li>}
+          {subj.avg < 45 && <li>متوسط درجات منخفض</li>}
+          {!(low >= 50 || subj.masteryNow < 40 || subj.avg < 45) && <li>—</li>}
+        </ul>
+      </div>
+      <div className="rounded-xl border p-3">
+        <div className="text-sm font-semibold mb-1">فجوة الهدف</div>
+        <div className="text-3xl font-extrabold mb-2">{gap}%</div>
+        <div className="text-xs text-gray-500">الهدف: {target || 70}% — الحالي: {subj.masteryNow || 0}%</div>
+      </div>
+    </div>
+  );
+}
+function Pill({ title, color = "gray", items = [] }) {
+  const map = {
+    green: "bg-green-50 border-green-200",
+    red: "bg-red-50 border-red-200",
+    blue: "bg-blue-50 border-blue-200",
+    yellow: "bg-yellow-50 border-yellow-200",
+    gray: "bg-gray-50 border-gray-200",
+  };
+  return (
+    <div className={`rounded-xl border p-3 ${map[color] || map.gray}`}>
+      <div className="text-sm font-semibold mb-1">{title}</div>
+      {items.length ? (
+        <ul className="list-disc pr-5 text-sm space-y-1">{items.map((t, i) => <li key={i}>{t}</li>)}</ul>
+      ) : (
+        <div className="text-xs text-gray-500">—</div>
+      )}
+    </div>
+  );
+}
+function Th({ children }) { return <th className="text-right p-2 text-xs font-semibold">{children}</th>; }
+function Td({ children }) { return <td className="p-2 align-top">{children}</td>; }
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
